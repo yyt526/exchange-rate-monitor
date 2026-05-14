@@ -32,14 +32,14 @@ export default function App() {
         {/* 排行榜 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RankTable
-            title="漲幅排行榜 Top 10"
+            title="漲幅排行榜 Top 5"
             data={gainRanks}
             type="gain"
             loading={loading}
             error={error}
           />
           <RankTable
-            title="跌幅排行榜 Top 10"
+            title="跌幅排行榜 Top 5"
             data={lossRanks}
             type="loss"
             loading={loading}

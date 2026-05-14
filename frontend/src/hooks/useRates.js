@@ -43,8 +43,8 @@ export function useRanks() {
     try {
       setError(null);
       const [gain, loss] = await Promise.all([
-        fetchRanks("gain", 10),
-        fetchRanks("loss", 10),
+        fetchRanks("gain", 5),
+        fetchRanks("loss", 5),
       ]);
       setGainRanks(gain);
       setLossRanks(loss);
