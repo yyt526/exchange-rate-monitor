@@ -79,25 +79,44 @@ def _get_rate_for_date(db: Session, currency: str, target_date: date) -> float |
     return None
 
 
+def _get_two_latest_dates(db: Session, currency: str) -> tuple[date | None, date | None]:
+    """取得該幣別資料庫中最近兩個不同日期（最新、次新）。"""
+    rows = (
+        db.query(ExchangeRate.date)
+        .filter(ExchangeRate.currency == currency, ExchangeRate.spot_sell.isnot(None))
+        .order_by(ExchangeRate.date.desc())
+        .limit(2)
+        .all()
+    )
+    dates = [r[0] for r in rows]
+    latest = dates[0] if len(dates) >= 1 else None
+    prev = dates[1] if len(dates) >= 2 else None
+    return latest, prev
+
+
 def _compute_daily_stats(db: Session) -> list[dict]:
-    """計算各幣別今日 vs 昨日漲跌幅，回傳統計列表。"""
+    """計算各幣別最新兩筆資料的漲跌幅（避免當日無新資料時誤算為 0）。"""
     today = date.today()
-    yesterday = today - timedelta(days=1)
 
     stats = []
     currencies = db.query(ExchangeRate.currency).distinct().all()
     for (currency,) in currencies:
-        today_rate = _get_rate_for_date(db, currency, today)
-        yesterday_rate = _get_rate_for_date(db, currency, yesterday)
+        latest_date, prev_date = _get_two_latest_dates(db, currency)
 
-        if today_rate is None or yesterday_rate is None or yesterday_rate == 0:
+        today_rate = _get_rate_for_date(db, currency, latest_date) if latest_date else None
+        yesterday_rate = _get_rate_for_date(db, currency, prev_date) if prev_date else None
+
+        # 若最新兩筆是同一天，視為無變動
+        if latest_date and prev_date and latest_date == prev_date:
+            change_pct = 0.0
+        elif today_rate is None or yesterday_rate is None or yesterday_rate == 0:
             change_pct = None
         else:
             change_pct = (today_rate - yesterday_rate) / yesterday_rate * 100
 
         stats.append({
             "currency": currency,
-            "today_date": today,
+            "today_date": latest_date or today,
             "yesterday_rate": yesterday_rate,
             "today_rate": today_rate,
             "change_pct": change_pct,
