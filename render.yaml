@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: exchange-rate-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT
+    plan: free
+    envVars:
+      - key: FINMIND_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
